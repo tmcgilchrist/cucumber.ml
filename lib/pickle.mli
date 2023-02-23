@@ -21,3 +21,4 @@ val name : t -> string
     executed.  See also [Tag.t] *)
 val filter_pickles : (Tag.t list * Tag.t list) -> t list -> t list
 
+val construct_hooks : (string -> unit Lwt.t) list -> t -> unit Lwt.t

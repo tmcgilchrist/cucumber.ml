@@ -2,7 +2,7 @@
  (name cucumber)
  (public_name cucumber)
  (foreign_archives gherkin-c)
- (libraries cmdliner re re.perl base)
+ (libraries cmdliner re re.perl base lwt lwt.unix)
  (foreign_stubs
   (language c)
   (names gherkin_intf)

@@ -11,6 +11,7 @@ depends: [
   "dune" {>= "3.2"}
   "re" {>= "1.9.0"}
   "base" {>= "v0.15.1"}
+  "lwt" {>= "5.6.1"}
   "cmdliner" {>= "1.1"}
   "odoc" {with-doc}
 ]
