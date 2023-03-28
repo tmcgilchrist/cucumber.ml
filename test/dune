@@ -1,5 +1,5 @@
 (executables
- (libraries cucumber)
+ (libraries cucumber eio_main lwt_eio)
  (package cucumber)
  (public_names cucumber cucumber_lwt)
  (modules test test_lwt)
