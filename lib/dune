@@ -12,12 +12,16 @@
 (data_only_dirs gherkin-c)
 
 (rule
- (deps (source_tree %{project_root}/lib/gherkin-c))
+ (deps
+  (source_tree %{project_root}/lib/gherkin-c))
  (targets libgherkin-c.a dllgherkin-c.so)
  (action
   (no-infer
    (progn
-    (chdir %{project_root}/lib/gherkin-c/c (run make libs libs_so))
+    (chdir
+     %{project_root}/lib/gherkin-c/c
+     (run make libs libs_so))
     (copy %{project_root}/lib/gherkin-c/c/libs/libgherkin.a libgherkin-c.a)
-    (copy %{project_root}/lib/gherkin-c/c/libs/libgherkin.so.25.0.2 dllgherkin-c.so)))))
-
+    (copy
+     %{project_root}/lib/gherkin-c/c/libs/libgherkin.so.25.0.2
+     dllgherkin-c.so)))))
