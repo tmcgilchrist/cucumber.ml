@@ -1,21 +1,18 @@
 type 'a step = {
-    regex : Re.re;
-    stepdef : ('a option -> Re.Group.t option -> Step.arg option -> ('a option * Outcome.t))
-  }
+  regex : Re.re;
+  stepdef :
+    'a option -> Re.Group.t option -> Step.arg option -> 'a option * Outcome.t;
+}
 
 type 'a t = {
-    before_hooks : (string -> unit) list;
-    after_hooks : (string -> unit) list;
-    stepdefs : 'a step list;
-    dialect : Dialect.t
-  }
+  before_hooks : (string -> unit) list;
+  after_hooks : (string -> unit) list;
+  stepdefs : 'a step list;
+  dialect : Dialect.t;
+}
 
-let empty = {
-    after_hooks = [];
-    before_hooks = [];
-    stepdefs = [];
-    dialect = Dialect.En
-  }
+let empty =
+  { after_hooks = []; before_hooks = []; stepdefs = []; dialect = Dialect.En }
 
 let _Before f cucc =
   let reg_before_hooks = cucc.before_hooks in
@@ -27,112 +24,119 @@ let _After f cucc =
 
 let _Given re f cucc =
   let reg_steps = cucc.stepdefs in
-  { cucc with stepdefs = { regex = re; stepdef = f }::reg_steps }
+  { cucc with stepdefs = { regex = re; stepdef = f } :: reg_steps }
 
 let _When = _Given
 let _Then = _Given
-
-let set_dialect dialect cucc =
-  { cucc with dialect }
-          
-let find str step =
-  Re.execp step.regex str
+let set_dialect dialect cucc = { cucc with dialect }
+let find str step = Re.execp step.regex str
 
 let actuate user_step step state =
   let groups = Step.find_groups step user_step.regex in
-  user_step.stepdef state groups (Step.argument step) 
+  user_step.stepdef state groups (Step.argument step)
 
 let run cucc state step =
-  match (Base.List.filter cucc.stepdefs ~f:(find (Step.text step))) with
-  | [user_step] ->
-     actuate user_step step state
+  match Base.List.filter cucc.stepdefs ~f:(find (Step.text step)) with
+  | [ user_step ] -> actuate user_step step state
   | [] ->
-     print_endline ("Could not find step: " ^ (Step.text step));
-     (None, Outcome.Undefined)
+      print_endline ("Could not find step: " ^ Step.text step);
+      (None, Outcome.Undefined)
   | _ ->
-     print_endline ("Ambigious match: " ^ (Step.text step));
-     (None, Outcome.Undefined)
+      print_endline ("Ambigious match: " ^ Step.text step);
+      (None, Outcome.Undefined)
 
 let execute_step cucc state step =
   try
     let result = run cucc state step in
     Ok result
-  with
-  | ex -> Error (Printexc.to_string ex)
+  with ex -> Error (Printexc.to_string ex)
 
 let execute_step_with_skip cucc (skipping, error, lastState, results) step =
-  if skipping then
-    (true, error, None, Outcome.Skip::results)
+  if skipping then (true, error, None, Outcome.Skip :: results)
   else
     match execute_step cucc lastState step with
-    | Ok (s, Outcome.Pass) ->
-       (false, None, s, Outcome.Pass::results)
-    | Ok (s, o) ->
-       (true, None, s, o :: results)
-    | Error e ->
-       (true, Some e, None, Outcome.Fail::results)
+    | Ok (s, Outcome.Pass) -> (false, None, s, Outcome.Pass :: results)
+    | Ok (s, o) -> (true, None, s, o :: results)
+    | Error e -> (true, Some e, None, Outcome.Fail :: results)
 
 let print_error error pickle =
   match error with
   | Some e ->
-     print_endline ("Error in scenario " ^ Pickle.name pickle);
-     print_endline e;
-     print_newline ()
+      print_endline ("Error in scenario " ^ Pickle.name pickle);
+      print_endline e;
+      print_newline ()
   | _ -> ()
-  
+
 let execute_pickle cucc pickle =
   let steps = Pickle.steps pickle in
   Pickle.execute_hooks cucc.before_hooks pickle;
-  let (_, error, _, outcomeLst) = Base.List.fold steps ~init:(false, None, None, [])  ~f:(execute_step_with_skip cucc) in
+  let _, error, _, outcomeLst =
+    Base.List.fold steps ~init:(false, None, None, [])
+      ~f:(execute_step_with_skip cucc)
+  in
   print_error error pickle;
   Pickle.execute_hooks cucc.after_hooks pickle;
   Base.List.rev outcomeLst
-  
-let execute_pickle_lst cucc tags exit_status feature_file =  
-  let pickle_lst = Pickle.load_feature_file (Dialect.string_of_dialect cucc.dialect) feature_file in
+
+let execute_pickle_lst cucc tags exit_status feature_file =
+  let pickle_lst =
+    Pickle.load_feature_file
+      (Dialect.string_of_dialect cucc.dialect)
+      feature_file
+  in
   match pickle_lst with
-  | [] ->
-     Outcome.exit_status []
+  | [] -> Outcome.exit_status []
   | _ ->
-     let runnable_pickle_lst = Pickle.filter_pickles tags pickle_lst in
-     let outcome_lst = Base.List.map runnable_pickle_lst ~f:(execute_pickle cucc) in
-     Report.print feature_file outcome_lst;
-     if exit_status = 0 then
-       Outcome.exit_status (List.flatten outcome_lst)
-     else
-       exit_status
+      let runnable_pickle_lst = Pickle.filter_pickles tags pickle_lst in
+      let outcome_lst =
+        Base.List.map runnable_pickle_lst ~f:(execute_pickle cucc)
+      in
+      Report.print feature_file outcome_lst;
+      if exit_status = 0 then Outcome.exit_status (List.flatten outcome_lst)
+      else exit_status
 
 open Cmdliner
 
 let files_arg =
-  Arg.(non_empty & pos_all file [] & info [] ~docv:"FILE" ~doc:"List of feature files to run")
+  Arg.(
+    non_empty & pos_all file []
+    & info [] ~docv:"FILE" ~doc:"List of feature files to run")
 
-let tags_arg = 
-  Arg.(value & opt (some string) None & info ["tags"] ~docv:"TAGS" ~doc:"Listing tags allows the use of the tagging feature of Cucumber.  The format is @tag to a feature or step to run and ~@tag to disallow a tag from running. Tags are seperated by a space (the comma for 'or' is not supported). For instance, --tags \"@tag1 ~@tag2\" will run features/steps tagged with @tag1 and will not run features/steps with @tag2.")
-             
+let tags_arg =
+  Arg.(
+    value
+    & opt (some string) None
+    & info [ "tags" ] ~docv:"TAGS"
+        ~doc:
+          "Listing tags allows the use of the tagging feature of Cucumber.  \
+           The format is @tag to a feature or step to run and ~@tag to \
+           disallow a tag from running. Tags are seperated by a space (the \
+           comma for 'or' is not supported). For instance, --tags \"@tag1 \
+           ~@tag2\" will run features/steps tagged with @tag1 and will not run \
+           features/steps with @tag2.")
+
 let manage_command_line cucc tags_str files =
   let tags =
     match tags_str with
-    | Some str ->
-       Tag.list_of_string str
-    | None ->
-       Tag.list_of_string ""
+    | Some str -> Tag.list_of_string str
+    | None -> Tag.list_of_string ""
   in
-  let exit_status = Base.List.fold files ~init:0 ~f:(execute_pickle_lst cucc tags) in
-  if exit_status = 0 then
-    Result.Ok ()
-  else
-    Result.Error "Some scenarios failed. Please see output for more details"
-  
+  let exit_status =
+    Base.List.fold files ~init:0 ~f:(execute_pickle_lst cucc tags)
+  in
+  if exit_status = 0 then Result.Ok ()
+  else Result.Error "Some scenarios failed. Please see output for more details"
+
 let cmd cucc =
-  let term = Term.((const (manage_command_line cucc) $ tags_arg $ files_arg)) in
-  let info = Cmd.info "Cucumber.ml" ~version:"1.0.3" ~doc:"Run Cucumber Stepdefs" in
-  Cmd.v info term 
-  
+  let term = Term.(const (manage_command_line cucc) $ tags_arg $ files_arg) in
+  let info =
+    Cmd.info "Cucumber.ml" ~version:"1.0.3" ~doc:"Run Cucumber Stepdefs"
+  in
+  Cmd.v info term
+
 (** Executes current Cucumber context and exits the process.
  *)
-let execute cucc =
-  exit @@ Cmd.eval_result (cmd cucc)
+let execute cucc = exit @@ Cmd.eval_result (cmd cucc)
 
 let fail = (None, Outcome.Fail)
 let pass = (None, Outcome.Pass)

@@ -1,0 +1,3 @@
+pin-depends: [
+  ["lwt_eio.dev" "git+https://github.com/talex5/lwt_eio.git#39c25ade0e514331a70e632dce412fef2ef41a5f"]
+]

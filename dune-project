@@ -1,7 +1,6 @@
 (lang dune 3.2)
 (name cucumber)
 (generate_opam_files true)
-(formatting disabled)
 (source (github cucumber/cucumber.ml))
 (license MIT)
 (authors "Christopher Guy Yocum")
@@ -14,4 +13,7 @@
  (depends
   (re (>= 1.9.0))
   (base (>= v0.15.1))
+  (lwt (>= 5.6.1))
+  (eio (>= 0.8.1))
+  lwt_eio
   (cmdliner (>= 1.1))))
