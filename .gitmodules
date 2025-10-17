@@ -1,4 +1,0 @@
-[submodule "lib/gherkin-c"]
-	branch = main
-	path = lib/gherkin-c
-	url = https://github.com/cucumber/gherkin.git

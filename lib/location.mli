@@ -2,10 +2,12 @@
 
 type t
 
-(** Pretty print a string from a [t]. *)
 val string_of_location : t -> string
+(** Pretty print a string from a [t]. *)
 
-(** This is to support Tags which are passed in via the command
-   line. It will create a default location for a Tag of line: 0 and
-   column: 0 *)
+val make : int32 -> int32 -> t
+(** Create a location from line and column numbers. *)
+
 val from_command_line : unit -> t
+(** This is to support Tags which are passed in via the command line. It will
+    create a default location for a Tag of line: 0 and column: 0 *)

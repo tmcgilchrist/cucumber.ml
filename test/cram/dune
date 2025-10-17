@@ -1,0 +1,5 @@
+(cram
+ (deps
+  %{bin:cucumber}
+  %{bin:camels}
+  (source_tree ../features)))

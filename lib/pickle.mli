@@ -1,23 +1,28 @@
 (** Module for parsing and running Cucumber feature files.
 
-    This module models the Cucumber Pickle which is returned from the Gherkin parser. 
- *)
+    This module models the Cucumber Pickle which is returned from the Gherkin
+    parser. *)
 
 type t
 
+val load_feature_file : string -> string -> t list
 (** Load a Gherkin feature file and return [t list]. *)
-val load_feature_file : string -> string -> t list 
 
-(** Execute user supplied Before and After hooks. *)
 val execute_hooks : (string -> unit) list -> t -> unit
+(** Execute user supplied Before and After hooks. *)
 
-(** Return all steps which are defined for the Pickle. *)
 val steps : t -> Step.t list
+(** Return all steps which are defined for the Pickle. *)
 
-(** Return the name of the pickle (eg the Scenario name). *)
 val name : t -> string
+(** Return the name of the pickle (eg the Scenario name). *)
 
-(** Filter pickles so that only the ones supplied by the user are
-    executed.  See also [Tag.t] *)
-val filter_pickles : (Tag.t list * Tag.t list) -> t list -> t list
+val feature_keyword : t -> string
+(** Return the feature keyword (eg "Feature"). *)
 
+val feature_name : t -> string
+(** Return the feature name. *)
+
+val filter_pickles : Tag.t list * Tag.t list -> t list -> t list
+(** Filter pickles so that only the ones supplied by the user are executed. See
+    also [Tag.t] *)

@@ -15,9 +15,9 @@ after you checkout the repository like so:
 ```bash
 git submodule init
 git submodule update
-``` 
+```
 
-or clone the repository with `--recursive`. This will bring the gherkin-c 
+or clone the repository with `--recursive`. This will bring the gherkin-c
 library into the `lib` directory.
 
 ## Building
@@ -26,7 +26,7 @@ This project uses [Dune](https://github.com/ocaml/dune) as its build
 system.  To build the Cucumber library run:
 
 ```bash
-dune build 
+dune build
 ```
 
 This will build and install the Cucumber library into your
@@ -47,7 +47,7 @@ open Cucumber.Lib
 
 type world = { foo : bool }
 
-let man_state curr_state next_state = 
+let man_state curr_state next_state =
     match curr_state with
   | Some x ->
      print_endline ("my state is " ^ (string_of_bool x.foo));
@@ -55,9 +55,9 @@ let man_state curr_state next_state =
   | None ->
      print_endline "I have no state";
      (Some { foo = next_state }, Cucumber.Outcome.Pass)
-     
+
 (* users can use the pipeline operator *)
-let foo = 
+let foo =
   empty
   |> set_dialect Cucumber.Dialect.En
   |> _After
@@ -84,10 +84,10 @@ let foo =
     _Then
       (Re.Perl.compile_pat "I should receive the test results")
       (fun state group args ->
-        print_endline "Then";              
-        man_state state true)            
+        print_endline "Then";
+        man_state state true)
 
-(* or they can use a list then use a fold function to build up the run 
+(* or they can use a list then use a fold function to build up the run
 eg Base.List.fold bar ~init:empty ~f:(fun accum stepdef -> stepdef accum)
 *)
 let bar = [
@@ -104,10 +104,10 @@ let bar = [
     _Then
       (Re.Perl.compile_pat "I should receive the test results")
       (fun state group args ->
-        print_endline "Then";              
+        print_endline "Then";
         man_state state true)
   ]
-          
+
 let () =
   execute foo
 
@@ -122,13 +122,13 @@ Scenario: A passing scenario
  Then I should receive the test results
 ```
 
-See the test/test.ml and test/test.feature files for more information.
+See the test/test.ml and test/features/test.feature files for more information.
 
 Once the executable has been built (see the Makefile for an instance
 of building the test module), you can run the tests.  For instance,
 
 ```
-dune exec -- cucumber test/test.feature
+dune exec -- cucumber test/features/test.feature
 ```
 
 This will report back using the compact notation for Cucumber (dots
