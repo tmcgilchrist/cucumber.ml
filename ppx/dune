@@ -1,0 +1,8 @@
+(library
+ (name ppx_cucumber)
+ (public_name ppx_cucumber)
+ (kind ppx_rewriter)
+ (libraries ppxlib)
+ (ppx_runtime_libraries cucumber)
+ (preprocess
+  (pps ppxlib.metaquot)))

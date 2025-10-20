@@ -4,6 +4,18 @@ This implements the core Cucumber feature file language, Gherkin, and
 associated library for specifying the execution of those scenarios for
 the OCaml programming language.
 
+**Features:**
+- Pure OCaml Gherkin parser (no C dependencies)
+- OCaml 5.x effect handlers for ergonomic step definitions
+- PPX support for automatic step registration
+- Seamless async runtime integration (Eio, Lwt) via effect composition
+- Three API styles: Classic, PPX Attributes, and PPX + Effects
+
+## Documentation
+
+- [Effect Handlers and Async Integration](docs/effects-and-async.md) - Comprehensive guide to using OCaml 5.x effects with Cucumber.ml and async runtimes
+- [Examples](examples/) - Working examples demonstrating different API styles
+
 ## libgherkin.so
 
 Libgherkin.so is the C library that Cucumber.ml uses to parse the
@@ -43,7 +55,7 @@ command line options as the library will read them itself to determine
 what feature files and other things to run.
 
 ```ocaml
-open Cucumber.Lib
+open Cucumber
 
 type world = { foo : bool }
 

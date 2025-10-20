@@ -1,12 +1,13 @@
 (** Module implementing Cucumber Data Tables.
 
    For example the following Given step defines a Data Table.
-
+   {v
     Given the following users exist:
     | name   | email              | twitter         |
     | Aslak  | aslak@cucumber.io  | @aslak_hellesoy |
     | Julien | julien@cucumber.io | @jbpros         |
     | Matt   | matt@cucumber.io   | @mattwynne      |
+   v}
 *)
 
 type t

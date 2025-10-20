@@ -38,13 +38,19 @@ let () =
     | Cucumber.Parser.EOF -> print_endline "EOF"
     | Cucumber.Parser.BLANK_LINE -> print_endline "BLANK_LINE"
     | Cucumber.Parser.COMMENT_LINE -> print_endline "COMMENT_LINE"
-    | Cucumber.Parser.TAG_LINE tags ->
-        Printf.printf "TAG_LINE [%s]\n" (String.concat "; " tags)
-    | Cucumber.Parser.FEATURE_LINE s -> Printf.printf "FEATURE_LINE %s\n" s
-    | Cucumber.Parser.SCENARIO_LINE (kw, name) ->
-        Printf.printf "SCENARIO_LINE (%s, %s)\n" kw name
-    | Cucumber.Parser.STEP_LINE (kw, marker, text) ->
-        Printf.printf "STEP_LINE (%s, %s, %s)\n" kw marker text
+    | Cucumber.Parser.TAG_LINE (tags, pos) ->
+        Printf.printf "TAG_LINE [%s] at line %d, col %d\n"
+          (String.concat "; " tags) pos.Cucumber.Gherkin_ast.line
+          pos.Cucumber.Gherkin_ast.col
+    | Cucumber.Parser.FEATURE_LINE (s, pos) ->
+        Printf.printf "FEATURE_LINE %s at line %d, col %d\n" s
+          pos.Cucumber.Gherkin_ast.line pos.Cucumber.Gherkin_ast.col
+    | Cucumber.Parser.SCENARIO_LINE ((kw, name), pos) ->
+        Printf.printf "SCENARIO_LINE (%s, %s) at line %d, col %d\n" kw name
+          pos.Cucumber.Gherkin_ast.line pos.Cucumber.Gherkin_ast.col
+    | Cucumber.Parser.STEP_LINE ((kw, marker, text), pos) ->
+        Printf.printf "STEP_LINE (%s, %s, %s) at line %d, col %d\n" kw marker
+          text pos.Cucumber.Gherkin_ast.line pos.Cucumber.Gherkin_ast.col
     | Cucumber.Parser.DESCRIPTION_LINE s ->
         Printf.printf "DESCRIPTION_LINE %s\n" s
     | _ -> print_endline "OTHER");

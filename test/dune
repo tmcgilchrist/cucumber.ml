@@ -1,12 +1,27 @@
 (executable
  (name camels)
+ (package cucumber)
  (libraries cucumber)
  (public_name camels)
  (flags
   (:standard -w -27)))
 
+; TODO Move this to examples?
+(executable
+ (name camels_ppx)
+ (package cucumber)
+ (libraries cucumber)
+ (public_name camels_ppx)
+ (preprocess
+  (pps ppx_cucumber))
+ (flags
+  (:standard -w -27)))
+
 (test
  (name test_suite)
+ (package cucumber)
  (libraries cucumber alcotest)
+ (flags
+  (:standard -w -42))
  (deps
   (source_tree features)))

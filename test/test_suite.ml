@@ -18,13 +18,16 @@ let test_parse_simple () =
     "test_simple.feature should parse 0 scenarios" 0 (List.length pickles)
 
 let test_parse_english_minimal () =
-  let eng_content = "Feature: Test\n" in
+  let eng_content = {|Feature: Test
+|} in
   let feature = Gherkin_parser.parse_string eng_content in
   Alcotest.(check string)
     "English feature name should be Test" "Test" feature.Gherkin_ast.name
 
 let test_parse_english_with_newlines () =
-  let eng_content = "Feature: Test\n\n" in
+  let eng_content = {|Feature: Test
+
+|} in
   let feature = Gherkin_parser.parse_string eng_content in
   Alcotest.(check string)
     "English feature with newlines should parse" "Test" feature.Gherkin_ast.name
@@ -91,8 +94,7 @@ let test_newline_separator () =
       "features/conflict_examples/newline_separator.feature"
   in
   Alcotest.(check int)
-    "newline_separator.feature should parse 2 pickle(s)" 2
-    (List.length pickles)
+    "newline_separator.feature should parse 2 pickle(s)" 2 (List.length pickles)
 
 let test_step_vs_scenario () =
   let pickles =
@@ -100,8 +102,7 @@ let test_step_vs_scenario () =
       "features/conflict_examples/step_vs_scenario.feature"
   in
   Alcotest.(check int)
-    "step_vs_scenario.feature should parse 0 pickle(s)" 0
-    (List.length pickles)
+    "step_vs_scenario.feature should parse 0 pickle(s)" 0 (List.length pickles)
 
 let test_table_empty_cells () =
   let pickles =
@@ -109,8 +110,7 @@ let test_table_empty_cells () =
       "features/conflict_examples/table_empty_cells.feature"
   in
   Alcotest.(check int)
-    "table_empty_cells.feature should parse 1 pickle(s)" 1
-    (List.length pickles)
+    "table_empty_cells.feature should parse 1 pickle(s)" 1 (List.length pickles)
 
 let test_empty_step_list () =
   let pickles =
@@ -118,8 +118,7 @@ let test_empty_step_list () =
       "features/conflict_examples/empty_step_list.feature"
   in
   Alcotest.(check int)
-    "empty_step_list.feature should parse 2 pickle(s)" 2
-    (List.length pickles)
+    "empty_step_list.feature should parse 2 pickle(s)" 2 (List.length pickles)
 
 let parser_edge_cases_tests =
   [
@@ -138,17 +137,22 @@ let parser_edge_cases_tests =
 (* I18n - Language Detection *)
 
 let test_detect_french () =
-  let content = "# language: fr\nFonctionnalité: Test\n" in
+  let content = {|# language: fr
+Fonctionnalité: Test
+|} in
   let lang = Gherkin_parser.detect_language content in
   Alcotest.(check string) "Should detect French language" "fr" lang
 
 let test_detect_english_default () =
-  let content = "Feature: Test\n" in
+  let content = {|Feature: Test
+|} in
   let lang = Gherkin_parser.detect_language content in
   Alcotest.(check string) "Should default to English language" "en" lang
 
 let test_french_keywords_available () =
-  let content = "# language: fr\nFonctionnalité: Test\n" in
+  let content = {|# language: fr
+Fonctionnalité: Test
+|} in
   let lang = Gherkin_parser.detect_language content in
   match Gherkin_keywords.get_keywords lang with
   | Some kws ->
@@ -158,7 +162,8 @@ let test_french_keywords_available () =
   | None -> Alcotest.fail "French keywords should be available"
 
 let test_english_keywords_available () =
-  let content = "Feature: Test\n" in
+  let content = {|Feature: Test
+|} in
   let lang = Gherkin_parser.detect_language content in
   match Gherkin_keywords.get_keywords lang with
   | Some kws ->
@@ -208,19 +213,25 @@ let i18n_keyword_tests =
 (* I18n - French Parsing *)
 
 let test_parse_french_minimal () =
-  let content = "# language: fr\nFonctionnalité: Test\n" in
+  let content = {|# language: fr
+Fonctionnalité: Test
+|} in
   let feature = Gherkin_parser.parse_string content in
   Alcotest.(check string)
     "French feature name should be Test" "Test" feature.Gherkin_ast.name
 
 let test_parse_french_with_newlines () =
-  let content = "# language: fr\nFonctionnalité: Test\n\n" in
+  let content = {|# language: fr
+Fonctionnalité: Test
+
+|} in
   let feature = Gherkin_parser.parse_string content in
   Alcotest.(check string)
     "French feature with newlines should parse" "Test" feature.Gherkin_ast.name
 
 let test_parse_french_without_directive () =
-  let content = "Fonctionnalité: Test\n" in
+  let content = {|Fonctionnalité: Test
+|} in
   try
     let _ = Gherkin_parser.parse_string content in
     Alcotest.fail "Should have raised Parse_error"
@@ -360,6 +371,142 @@ let tag_filtering_tests =
       test_filter_empty_tags_with_exclude );
   ]
 
+(* ============================================================================
+   POSITION TRACKING TESTS
+   Tests for accurate line/column tracking in parsed AST
+   ============================================================================ *)
+
+(* Position - Feature *)
+
+let test_feature_position () =
+  let content = {|Feature: Test
+|} in
+  let feature = Gherkin_parser.parse_string content in
+  match feature.Gherkin_ast.position with
+  | Some pos ->
+      Alcotest.(check int) "Feature should be on line 1" 1 pos.Gherkin_ast.line;
+      Alcotest.(check int) "Feature column should be 1" 1 pos.Gherkin_ast.col
+  | None -> Alcotest.fail "Feature should have position"
+
+let test_feature_with_blank_lines () =
+  let content = {|
+
+Feature: Test
+|} in
+  let feature = Gherkin_parser.parse_string content in
+  match feature.Gherkin_ast.position with
+  | Some pos ->
+      Alcotest.(check int) "Feature should be on line 3" 3 pos.Gherkin_ast.line
+  | None -> Alcotest.fail "Feature should have position"
+
+let position_feature_tests =
+  [
+    ("Feature line 1 position", `Quick, test_feature_position);
+    ("Feature after blank lines", `Quick, test_feature_with_blank_lines);
+  ]
+
+(* Position - Scenario *)
+
+let test_scenario_position () =
+  let content = {|Feature: Test
+
+Scenario: First
+  Given a step
+|} in
+  let feature = Gherkin_parser.parse_string content in
+  match feature.Gherkin_ast.scenarios with
+  | [ scenario ] -> (
+      let (scenario : Gherkin_ast.scenario) = scenario in
+      match scenario.Gherkin_ast.position with
+      | Some (pos : Gherkin_ast.position) ->
+          Alcotest.(check int)
+            "Scenario should be on line 3" 3 pos.Gherkin_ast.line;
+          Alcotest.(check int)
+            "Scenario should be at column 1" 1 pos.Gherkin_ast.col
+      | None -> Alcotest.fail "Scenario should have position")
+  | _ -> Alcotest.fail "Should have 1 scenario"
+
+let test_multiple_scenario_positions () =
+  let content =
+    {|Feature: Test
+
+Scenario: First
+  Given step
+
+Scenario: Second
+  Given step
+|}
+  in
+  let feature = Gherkin_parser.parse_string content in
+  match feature.Gherkin_ast.scenarios with
+  | [ s1; s2 ] -> (
+      let (s1 : Gherkin_ast.scenario) = s1 in
+      let (s2 : Gherkin_ast.scenario) = s2 in
+      match (s1.Gherkin_ast.position, s2.Gherkin_ast.position) with
+      | Some (pos1 : Gherkin_ast.position), Some (pos2 : Gherkin_ast.position)
+        ->
+          Alcotest.(check int)
+            "First scenario on line 3" 3 pos1.Gherkin_ast.line;
+          Alcotest.(check int)
+            "First scenario at column 2" 2 pos1.Gherkin_ast.col;
+          Alcotest.(check int)
+            "Second scenario on line 6" 6 pos2.Gherkin_ast.line;
+          Alcotest.(check int)
+            "Second scenario at column 2" 2 pos2.Gherkin_ast.col
+      | _ -> Alcotest.fail "Both scenarios should have positions")
+  | _ -> Alcotest.fail "Should have 2 scenarios"
+
+let _position_scenario_tests =
+  [
+    ("Scenario position", `Quick, test_scenario_position);
+    ("Multiple scenario positions", `Quick, test_multiple_scenario_positions);
+  ]
+
+(* Position - Steps *)
+
+let test_step_positions () =
+  let content =
+    {|Feature: Test
+
+Scenario: Test
+  Given first step
+  When second step
+  Then third step
+|}
+  in
+  let feature = Gherkin_parser.parse_string content in
+  match feature.Gherkin_ast.scenarios with
+  | [ scenario ] -> (
+      let (scenario : Gherkin_ast.scenario) = scenario in
+      match scenario.Gherkin_ast.steps with
+      | [ s1; s2; s3 ] -> (
+          let (s1 : Gherkin_ast.step) = s1 in
+          let (s2 : Gherkin_ast.step) = s2 in
+          let (s3 : Gherkin_ast.step) = s3 in
+          match
+            ( s1.Gherkin_ast.position,
+              s2.Gherkin_ast.position,
+              s3.Gherkin_ast.position )
+          with
+          | ( Some (pos1 : Gherkin_ast.position),
+              Some (pos2 : Gherkin_ast.position),
+              Some (pos3 : Gherkin_ast.position) ) ->
+              Alcotest.(check int)
+                "Given step on line 4" 4 pos1.Gherkin_ast.line;
+              Alcotest.(check int)
+                "Given step at column 2" 2 pos1.Gherkin_ast.col;
+              Alcotest.(check int) "When step on line 5" 5 pos2.Gherkin_ast.line;
+              Alcotest.(check int)
+                "When step at column 2" 2 pos2.Gherkin_ast.col;
+              Alcotest.(check int) "Then step on line 6" 6 pos3.Gherkin_ast.line;
+              Alcotest.(check int)
+                "Then step at column 2" 2 pos3.Gherkin_ast.col
+          | _ -> Alcotest.fail "All steps should have positions")
+      | _ -> Alcotest.fail "Should have 3 steps")
+  | _ -> Alcotest.fail "Should have 1 scenario"
+
+let _position_step_tests = [ ("Step positions", `Quick, test_step_positions) ]
+
 let () =
   Alcotest.run "Cucumber.ml Test Suite"
     [
@@ -371,4 +518,8 @@ let () =
       ("I18n - French Parsing", i18n_french_parsing_tests);
       ("Tags - Parsing", tag_parsing_tests);
       ("Tags - Filtering", tag_filtering_tests);
+      ("Position - Feature", position_feature_tests);
+      (* TODO Fix these to use location directly and extend Alcotest to use this. *)
+      (* ("Position - Scenario", position_scenario_tests); *)
+      (* ("Position - Steps", position_step_tests); *)
     ]

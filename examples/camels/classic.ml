@@ -1,3 +1,11 @@
+(** Camel farm example using the classic builder-based API.
+
+    This demonstrates the traditional approach to defining Cucumber steps:
+    - Manual regex compilation
+    - Explicit state threading through function parameters
+    - Builder pipeline (_Given |> _When |> _Then)
+    - Verbose Option handling *)
+
 open Cucumber
 
 type farm = { camels : int }
@@ -51,4 +59,4 @@ let steps =
          if state.camels == camels then (Some state, Cucumber.Outcome.Pass)
          else (Some state, Cucumber.Outcome.Fail))
 
-let _ = execute steps
+let () = execute steps

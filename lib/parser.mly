@@ -16,13 +16,13 @@
 /* Token declarations - Line-based tokens following official Gherkin parser */
 %token EOF
 %token <string> LANGUAGE_DIRECTIVE
-%token <string list> TAG_LINE
-%token <string> FEATURE_LINE
-%token <string * string> SCENARIO_LINE  /* (keyword, name) */
-%token <string> BACKGROUND_LINE
-%token <string> RULE_LINE
-%token <string> EXAMPLES_LINE
-%token <string * string * string> STEP_LINE  /* (keyword, step_marker, text) where step_marker is "Given"|"When"|"Then"|"And"|"But" */
+%token <string list * Gherkin_ast.position> TAG_LINE
+%token <string * Gherkin_ast.position> FEATURE_LINE
+%token <(string * string) * Gherkin_ast.position> SCENARIO_LINE  /* (keyword, name) */
+%token <string * Gherkin_ast.position> BACKGROUND_LINE
+%token <string * Gherkin_ast.position> RULE_LINE
+%token <string * Gherkin_ast.position> EXAMPLES_LINE
+%token <(string * string * string) * Gherkin_ast.position> STEP_LINE  /* (keyword, step_marker, text) where step_marker is "Given"|"When"|"Then"|"And"|"But" */
 %token <string list> TABLE_ROW
 %token DOCSTRING_DELIMITER
 %token DOCSTRING_ALT_DELIMITER
@@ -48,18 +48,19 @@ feature_file:
     blank_or_comment*
     EOF
     {
+      let (name, pos) = f in
       let language = match lang with Some l -> l | None -> "en" in
       {
         keyword = "Feature";
         language = language;
-        name = f;
+        name = name;
         description = (if descr = "" then None else Some descr);
         tags = tags;
         background = bg;
         scenarios = scenarios;
         rules = rules;
         span = None;
-        position = Some { line = 1; col = 1 };
+        position = Some pos;
       }
     }
 
@@ -75,7 +76,7 @@ language_directive:
 /* Tags - optional tag lines */
 tags_opt:
   | /* empty */ { [] }
-  | t = TAG_LINE rest = tags_opt { t @ rest }
+  | t = TAG_LINE rest = tags_opt { let (tags, _pos) = t in tags @ rest }
 
 description_lines:
   | /* empty */ { "" }
@@ -87,13 +88,14 @@ background:
   | b = BACKGROUND_LINE
     steps = step_list
     {
+      let (name, pos) = b in
       {
         keyword = "Background";
-        name = b;
+        name = name;
         description = None;
         steps = steps;
         span = None;
-        position = None;
+        position = Some pos;
       }
     }
 
@@ -110,7 +112,7 @@ scenario:
     steps = step_list
     examples = examples_list
     {
-      let (keyword, name) = s in
+      let ((keyword, name), pos) = s in
       {
         keyword = keyword;
         name = name;
@@ -119,7 +121,7 @@ scenario:
         steps = steps;
         examples = examples;
         span = None;
-        position = None;
+        position = Some pos;
       }
     }
 
@@ -131,7 +133,8 @@ examples:
   | e = EXAMPLES_LINE
     table = table?
     {
-      let name = if e = "" then None else Some e in
+      let (name_str, pos) = e in
+      let name = if name_str = "" then None else Some name_str in
       {
         keyword = "Examples";
         name = name;
@@ -139,7 +142,7 @@ examples:
         tags = [];  (* Examples no longer support tags *)
         table = table;
         span = None;
-        position = None;
+        position = Some pos;
       }
     }
 
@@ -155,15 +158,16 @@ rule:
     bg = background?
     scenarios = scenario_list
     {
+      let (name, pos) = r in
       {
         keyword = "Rule";
-        name = r;
+        name = name;
         description = None;
         tags = tags;
         background = bg;
         scenarios = scenarios;
         span = None;
-        position = None;
+        position = Some pos;
       }
     }
 
@@ -176,7 +180,7 @@ step_list:
 step:
   | s = STEP_LINE arg = step_argument?
     {
-      let (keyword, step_marker, text) = s in
+      let ((keyword, step_marker, text), pos) = s in
       (* Resolve And/But to actual step type based on last step *)
       let step_type = match step_marker with
         | "Given" -> last_step_type := Some Given; Given
@@ -191,7 +195,7 @@ step:
         text = text;
         argument = arg;
         span = None;
-        position = None;
+        position = Some pos;
       }
     }
 

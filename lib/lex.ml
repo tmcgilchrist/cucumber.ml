@@ -8,6 +8,12 @@ exception SyntaxError of string
 let current_keywords = ref Gherkin_keywords.english
 let set_keywords kws = current_keywords := kws
 
+(* Get current position from lexbuf *)
+let get_position lexbuf =
+  let pos, _ = Sedlexing.lexing_positions lexbuf in
+  let line = max 1 pos.pos_lnum in
+  Gherkin_ast.{ line; col = pos.pos_cnum - pos.pos_bol + 1 }
+
 (* Token types for internal use *)
 type temp_step_token =
   | GIVEN_KEYWORD of string
@@ -86,6 +92,9 @@ let parse_tag_line content =
 
 (* Line-based lexer - reads one line at a time and classifies it *)
 let read_token lexbuf =
+  (* Capture position at start of line, before skipping whitespace *)
+  let pos = get_position lexbuf in
+
   (* Skip leading whitespace within line *)
   let _ =
     match%sedlex lexbuf with
@@ -130,7 +139,7 @@ let read_token lexbuf =
       Sedlexing.rollback lexbuf;
       let content = read_line_content lexbuf in
       let tags = parse_tag_line content in
-      TAG_LINE tags
+      TAG_LINE (tags, pos)
   (* Docstring delimiters *)
   | "\"\"\"" ->
       let _ = read_line_content lexbuf in
@@ -159,13 +168,13 @@ let read_token lexbuf =
           let name = String.trim (read_line_content lexbuf) in
           (* Check structural keywords *)
           match check_structural_keyword word with
-          | Some FEATURE_KEYWORD -> FEATURE_LINE name
-          | Some BACKGROUND_KEYWORD -> BACKGROUND_LINE name
-          | Some RULE_KEYWORD -> RULE_LINE name
-          | Some SCENARIO_KEYWORD -> SCENARIO_LINE ("Scenario", name)
+          | Some FEATURE_KEYWORD -> FEATURE_LINE (name, pos)
+          | Some BACKGROUND_KEYWORD -> BACKGROUND_LINE (name, pos)
+          | Some RULE_KEYWORD -> RULE_LINE (name, pos)
+          | Some SCENARIO_KEYWORD -> SCENARIO_LINE (("Scenario", name), pos)
           | Some SCENARIO_OUTLINE_KEYWORD ->
-              SCENARIO_LINE ("Scenario Outline", name)
-          | Some EXAMPLES_KEYWORD -> EXAMPLES_LINE name
+              SCENARIO_LINE (("Scenario Outline", name), pos)
+          | Some EXAMPLES_KEYWORD -> EXAMPLES_LINE (name, pos)
           | _ ->
               (* Not a structural keyword, treat as description line *)
               Sedlexing.rollback lexbuf;
@@ -176,19 +185,19 @@ let read_token lexbuf =
           match check_step_keyword word with
           | Some (GIVEN_KEYWORD kw) ->
               let text = String.trim (read_line_content lexbuf) in
-              STEP_LINE (kw, "Given", text)
+              STEP_LINE ((kw, "Given", text), pos)
           | Some (WHEN_KEYWORD kw) ->
               let text = String.trim (read_line_content lexbuf) in
-              STEP_LINE (kw, "When", text)
+              STEP_LINE ((kw, "When", text), pos)
           | Some (THEN_KEYWORD kw) ->
               let text = String.trim (read_line_content lexbuf) in
-              STEP_LINE (kw, "Then", text)
+              STEP_LINE ((kw, "Then", text), pos)
           | Some (AND_KEYWORD kw) ->
               let text = String.trim (read_line_content lexbuf) in
-              STEP_LINE (kw, "And", text)
+              STEP_LINE ((kw, "And", text), pos)
           | Some (BUT_KEYWORD kw) ->
               let text = String.trim (read_line_content lexbuf) in
-              STEP_LINE (kw, "But", text)
+              STEP_LINE ((kw, "But", text), pos)
           | _ ->
               (* Regular text line - description *)
               let rest = read_line_content lexbuf in

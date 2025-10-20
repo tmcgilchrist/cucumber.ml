@@ -1,4 +1,18 @@
-(** The main module used to create a Cucumber instance. *)
+(** Cucumber.ml - BDD Testing Framework for OCaml
+
+    This module provides the main API for Cucumber.ml, a Behavior-Driven Development
+    (BDD) testing framework for OCaml.
+
+    Three API styles are supported:
+    - Classic builder API: Use [open Cucumber] for pipeline-based step definitions
+    - PPX attributes: Use [let[@given]], [let[@when]], [let[@then]] with classic handlers
+    - PPX + Effects: Use [let[@given]], [let[@when]], [let[@then]] with effect handlers ([open Cucumber.Effects])
+
+    @see <https://github.com/cucumber/cucumber.ml> for documentation and examples. *)
+
+(** {1 Classic Builder API}
+
+    The classic API is exposed at the top level. Use [open Cucumber] to access these functions. *)
 
 type 'a t
 (** A cucumber context type which contains a world state type parameter *)
@@ -73,3 +87,56 @@ val pass : 'a option * Outcome.t
 val pass_with_state : 'a -> 'a option * Outcome.t
 (** This function is a convenience method when a step definition does wish to
     pass back a state and pass the step. *)
+
+(** {1 Supporting Modules} *)
+
+module Location : module type of Location
+(** Source location information for Gherkin elements *)
+
+module Docstring : module type of Docstring
+(** DocString parsing and representation *)
+
+module Table : module type of Table
+(** Data table parsing and representation *)
+
+module Step : module type of Step
+(** Step definition types *)
+
+module Outcome : module type of Outcome
+(** Step execution outcome types (Pass, Fail, Skip, Pending) *)
+
+module Tag : module type of Tag
+(** Feature and scenario tags *)
+
+module Pickle : module type of Pickle
+(** Compiled test cases from Gherkin features *)
+
+module Report : module type of Report
+(** Test execution reporting *)
+
+module Dialect : module type of Dialect
+(** Gherkin language dialects (En, Fr, De, etc.) *)
+
+module Gherkin_ast : module type of Gherkin_ast
+(** Gherkin Abstract Syntax Tree *)
+
+module Gherkin_keywords : module type of Gherkin_keywords
+(** Gherkin keyword definitions by language *)
+
+module Gherkin_parser : module type of Gherkin_parser
+(** Gherkin parser *)
+
+module Lex : module type of Lex
+(** Lexer for Gherkin *)
+
+module Parser : module type of Parser
+(** Parser for Gherkin *)
+
+module Step_registry : module type of Step_registry
+(** Global step registry for PPX-registered steps *)
+
+module Effects : module type of Effects
+(** Effect handler API for ergonomic step definitions.
+
+    Use [open Cucumber.Effects] to access effect-based helpers like
+    [get_world], [set_world], [assert_equal], etc. *)

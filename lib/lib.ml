@@ -45,6 +45,42 @@ let run cucc state step =
       print_endline ("Ambigious match: " ^ Step.text step);
       (None, Outcome.Undefined)
 
+(** Run a step using the step registry instead of the builder-based stepdefs *)
+let run_from_registry state step =
+  let step_text = Step.text step in
+  let step_keyword = Step.keyword step in
+
+  (* Convert keyword to step type, handling And/But by using a default *)
+  let step_type =
+    try Step_registry.step_type_of_keyword step_keyword
+    with Failure _ ->
+      (* For And/But/*, default to Given for now.
+         TODO: Track previous step type properly *)
+      `Given
+  in
+
+  match Step_registry.find_step step_text step_type with
+  | Step_registry.Match (handler, groups) ->
+      let args = Step.argument step in
+      handler state groups args
+  | Step_registry.NoMatch ->
+      print_endline ("Could not find step: " ^ step_text);
+      (None, Outcome.Undefined)
+  | Step_registry.Ambiguous locations ->
+      let loc_strs =
+        List.map
+          (function
+            | Some { Step_registry.file; line; column } ->
+                Printf.sprintf "%s:%d:%d" file line column
+            | None -> "unknown")
+          locations
+      in
+      print_endline
+        (Printf.sprintf "Ambiguous match for '%s'. Matches found at: %s"
+           step_text
+           (String.concat ", " loc_strs));
+      (None, Outcome.Undefined)
+
 let execute_step cucc state step =
   try
     let result = run cucc state step in
@@ -370,6 +406,132 @@ let cmd cucc =
 
 (** Executes current Cucumber context and exits the process. *)
 let execute cucc = exit @@ Cmd.eval_result (cmd cucc)
+
+(** Execute using the step registry instead of builder-based stepdefs.
+
+    This is used when steps are registered via PPX attributes. The registry is
+    populated at module initialization time.
+
+    Example usage in your test file:
+    {[
+      let () = Cucumber.Lib.execute_from_registry ()
+    ]} *)
+let execute_from_registry ?(dialect = Dialect.En) () =
+  (* Create a modified version of execute that uses run_from_registry *)
+  let cucc = { empty with dialect } in
+
+  (* We need to override the run function to use the registry.
+     To do this, we'll modify execute_step to try registry first. *)
+  let execute_step_registry state step =
+    try
+      let result = run_from_registry state step in
+      Ok result
+    with ex -> Error (Printexc.to_string ex)
+  in
+
+  let execute_step_with_skip_registry (skipping, error, lastState, results) step
+      =
+    if skipping then (
+      print_step_result step Outcome.Skip None;
+      (true, error, None, Outcome.Skip :: results))
+    else
+      match execute_step_registry lastState step with
+      | Ok (s, Outcome.Pass) ->
+          print_step_result step Outcome.Pass None;
+          (false, None, s, Outcome.Pass :: results)
+      | Ok (s, o) ->
+          print_step_result step o None;
+          (true, None, s, o :: results)
+      | Error e ->
+          print_step_result step Outcome.Fail (Some e);
+          (true, Some e, None, Outcome.Fail :: results)
+  in
+
+  let execute_pickle_registry pickle =
+    (* Print scenario header *)
+    Printf.printf "  Scenario: %s\n" (Pickle.name pickle);
+    flush stdout;
+
+    let steps = Pickle.steps pickle in
+    Pickle.execute_hooks cucc.before_hooks pickle;
+    let _, error, _, outcomeLst =
+      List.fold_left execute_step_with_skip_registry (false, None, None, [])
+        steps
+    in
+    print_error error pickle;
+    Pickle.execute_hooks cucc.after_hooks pickle;
+    List.rev outcomeLst
+  in
+
+  let execute_pickle_lst_registry tags exit_status feature_file =
+    let pickle_lst =
+      Pickle.load_feature_file
+        (Dialect.string_of_dialect cucc.dialect)
+        feature_file
+    in
+    match pickle_lst with
+    | [] -> Outcome.exit_status []
+    | _ ->
+        let runnable_pickle_lst = Pickle.filter_pickles tags pickle_lst in
+        (* Print feature header once before all scenarios *)
+        (match runnable_pickle_lst with
+        | first_pickle :: _ ->
+            Printf.printf "\n%s: %s\n"
+              (Pickle.feature_keyword first_pickle)
+              (Pickle.feature_name first_pickle);
+            flush stdout
+        | [] -> ());
+        let outcome_lst =
+          List.map execute_pickle_registry runnable_pickle_lst
+        in
+        Report.print feature_file outcome_lst;
+        if exit_status = 0 then Outcome.exit_status (List.flatten outcome_lst)
+        else exit_status
+  in
+
+  (* Create a command that uses registry-based execution *)
+  let term =
+    Term.(
+      const
+        (fun
+          _name_filter
+          tags_str
+          _input_glob
+          _concurrency
+          _fail_fast
+          _retry
+          _retry_after
+          _retry_tag_filter
+          _verbosity
+          _color
+          files
+        ->
+          (* Simplified version of manage_command_line *)
+          let tags =
+            match tags_str with
+            | Some str -> Tag.list_of_string str
+            | None -> Tag.list_of_string ""
+          in
+
+          if List.length files = 0 then
+            Result.Error "No feature files specified"
+          else
+            let exit_status =
+              List.fold_left (execute_pickle_lst_registry tags) 0 files
+            in
+            if exit_status = 0 then Result.Ok ()
+            else
+              Result.Error
+                "Some scenarios failed. Please see output for more details")
+      $ name_arg $ tags_arg $ input_arg $ concurrency_arg $ fail_fast_arg
+      $ retry_arg $ retry_after_arg $ retry_tag_filter_arg $ verbosity_arg
+      $ color_arg $ files_arg)
+  in
+  let info =
+    Cmd.info "cucumber" ~version:"1.0.3"
+      ~doc:"Cucumber BDD test runner for OCaml (registry-based)"
+  in
+  exit @@ Cmd.eval_result (Cmd.v info term)
 
 let fail = (None, Outcome.Fail)
 let pass = (None, Outcome.Pass)

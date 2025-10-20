@@ -3,10 +3,11 @@
  (public_name cucumber)
  (libraries cmdliner re re.perl str sedlex menhirLib unix)
  (flags
-  (:standard -w -42))
+  (:standard -w -42-32))
  (preprocess
   (pps sedlex.ppx))
  (modules
+  effects
   gherkin_ast
   gherkin_keywords
   gherkin_parser
@@ -14,6 +15,7 @@
   parser
   pickle
   step
+  step_registry
   tag
   table
   location

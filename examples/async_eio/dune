@@ -1,0 +1,11 @@
+(executable
+ (name steps)
+ (libraries cucumber)
+ (preprocess
+  (pps ppx_cucumber)))
+
+(rule
+ (alias runtest)
+ (deps file_operations.feature)
+ (action
+  (run ./steps.exe file_operations.feature)))
