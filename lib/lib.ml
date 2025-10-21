@@ -1,18 +1,28 @@
-type 'a step = {
-  regex : Re.re;
-  stepdef :
-    'a option -> Re.Group.t option -> Step.arg option -> 'a option * Outcome.t;
-}
+(** Main Cucumber library - functorized over parser implementation.
 
-type 'a t = {
-  before_hooks : (string -> unit) list;
-  after_hooks : (string -> unit) list;
-  stepdefs : 'a step list;
-  dialect : Dialect.t;
-}
+    This module is parameterized by a parser implementation, allowing users to choose
+    between pure OCaml, C-based, or custom parsers. The default instantiation uses
+    the pure OCaml parser. *)
 
-let empty =
-  { after_hooks = []; before_hooks = []; stepdefs = []; dialect = Dialect.En }
+module Make (Parser : Gherkin_parser_intf.PARSER) = struct
+  (* Instantiate Pickle module with the chosen parser *)
+  module Pickle = Pickle.Make (Parser)
+
+  type 'a step = {
+    regex : Re.re;
+    stepdef :
+      'a option -> Re.Group.t option -> Step.arg option -> 'a option * Outcome.t;
+  }
+
+  type 'a t = {
+    before_hooks : (string -> unit) list;
+    after_hooks : (string -> unit) list;
+    stepdefs : 'a step list;
+    dialect : Dialect.t;
+  }
+
+  let empty =
+    { after_hooks = []; before_hooks = []; stepdefs = []; dialect = Dialect.En }
 
 let _Before f cucc =
   let reg_before_hooks = cucc.before_hooks in
@@ -533,6 +543,10 @@ let execute_from_registry ?(dialect = Dialect.En) () =
   in
   exit @@ Cmd.eval_result (Cmd.v info term)
 
-let fail = (None, Outcome.Fail)
-let pass = (None, Outcome.Pass)
-let pass_with_state state = (Some state, Outcome.Pass)
+  let fail = (None, Outcome.Fail)
+  let pass = (None, Outcome.Pass)
+  let pass_with_state state = (Some state, Outcome.Pass)
+end
+
+(* Default instantiation with pure OCaml parser for backward compatibility *)
+include Make (Gherkin_parser_pure)

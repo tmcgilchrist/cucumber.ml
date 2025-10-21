@@ -3,12 +3,44 @@
     This module provides the main API for Cucumber.ml, a Behavior-Driven Development
     (BDD) testing framework for OCaml.
 
+    {1 API Styles}
+
     Three API styles are supported:
     - Classic builder API: Use [open Cucumber] for pipeline-based step definitions
     - PPX attributes: Use [let[@given]], [let[@when]], [let[@then]] with classic handlers
     - PPX + Effects: Use [let[@given]], [let[@when]], [let[@then]] with effect handlers ([open Cucumber.Effects])
 
+    {1 Parser Selection}
+
+    By default, Cucumber.ml uses a pure OCaml parser (no C dependencies). You can:
+    - Use the default: [open Cucumber] (pure OCaml parser)
+    - Use the C parser: [module Cucumber = Cucumber.Make(Cucumber_c.Parser)]
+    - Use a custom parser via functor: [module MyCucumber = Cucumber.Make(My_parser)]
+
     @see <https://github.com/cucumber/cucumber.ml> for documentation and examples. *)
+
+(** {1 Functor for Custom Parsers} *)
+
+module Make : functor (Parser : Gherkin_parser_intf.PARSER) ->
+  sig
+    include module type of Lib.Make (Parser)
+  end
+(** Create a Cucumber instance with a custom parser.
+
+    Example:
+    {[
+      module My_parser : Cucumber.Gherkin_parser_intf.PARSER = struct
+        exception Parse_error of string * Gherkin_ast.position option
+        let parse_file fname = (* ... *)
+        let parse_string content = (* ... *)
+        let detect_language content = "en"
+      end
+
+      module My_cucumber = Cucumber.Make(My_parser)
+
+      let steps = My_cucumber.empty |> My_cucumber._Given ...
+      let () = My_cucumber.execute steps
+    ]} *)
 
 (** {1 Classic Builder API}
 
@@ -123,8 +155,11 @@ module Gherkin_ast : module type of Gherkin_ast
 module Gherkin_keywords : module type of Gherkin_keywords
 (** Gherkin keyword definitions by language *)
 
-module Gherkin_parser : module type of Gherkin_parser
-(** Gherkin parser *)
+module Gherkin_parser_intf : module type of Gherkin_parser_intf
+(** Parser interface module - defines the {!module-type:Gherkin_parser_intf.PARSER} signature *)
+
+module Gherkin_parser : module type of Gherkin_parser_pure
+(** Pure OCaml parser implementation (default) *)
 
 module Lex : module type of Lex
 (** Lexer for Gherkin *)

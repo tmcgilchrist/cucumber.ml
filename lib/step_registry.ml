@@ -87,12 +87,9 @@ let step_type_of_keyword keyword =
   | "when" -> `When
   | "then" -> `Then
   | "and" | "but" | "*" ->
-      (* These inherit from previous step - not handled here *)
+     (* These inherit from previous step - not handled here
+        TODO Track which type the And/But etc steps inherited from. *)
       failwith "And/But/* steps should inherit type from previous step"
   | _ -> failwith ("Unknown step keyword: " ^ keyword)
 
 let clear () = registry := []
-
-(** {1 Advanced} *)
-
-let step_info (RegisteredStep (Step s)) = (s.step_type, s.pattern, s.location)

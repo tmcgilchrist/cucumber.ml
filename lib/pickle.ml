@@ -1,20 +1,26 @@
-type t = {
-  lang : string;
-  name : string;
-  locations : Location.t list;
-  tags : Tag.t list;
-  steps : Step.t list;
-  feature_keyword : string;
-  feature_name : string;
-}
+(** Pickle module - converts Gherkin AST to executable test pickles.
 
-(* Helper: rev_filter reverses while filtering *)
-let rev_filter f lst = List.rev (List.filter f lst)
-let execute_hooks hooks p = List.iter (fun f -> f p.name) (List.rev hooks)
-let steps p = p.steps
-let name p = p.name
-let feature_keyword p = p.feature_keyword
-let feature_name p = p.feature_name
+    This module is functorized over a parser implementation, allowing different
+    parser backends to be used while keeping the pickle compilation logic identical. *)
+
+module Make (Parser : Gherkin_parser_intf.PARSER) = struct
+  type t = {
+    lang : string;
+    name : string;
+    locations : Location.t list;
+    tags : Tag.t list;
+    steps : Step.t list;
+    feature_keyword : string;
+    feature_name : string;
+  }
+
+  (* Helper: rev_filter reverses while filtering *)
+  let rev_filter f lst = List.rev (List.filter f lst)
+  let execute_hooks hooks p = List.iter (fun f -> f p.name) (List.rev hooks)
+  let steps p = p.steps
+  let name p = p.name
+  let feature_keyword p = p.feature_keyword
+  let feature_name p = p.feature_name
 
 (* Convert Gherkin AST to Pickle format *)
 let convert_position (pos : Gherkin_ast.position option) : Location.t =
@@ -147,27 +153,27 @@ let feature_to_pickles (feature : Gherkin_ast.feature) : t list =
 
   scenario_pickles @ rule_pickles
 
-let load_feature_file _dialect fname =
-  if Sys.file_exists fname then (
-    try
-      (* Parse the feature file *)
-      let feature = Gherkin_parser.parse_file fname in
-      (* Convert to pickles *)
-      feature_to_pickles feature
-    with
-    | Gherkin_parser.Parse_error (msg, pos) ->
-        (match pos with
-        | Some p ->
-            Printf.printf "Parse error at line %d, col %d: %s\n"
-              p.Gherkin_ast.line p.col msg
-        | None -> Printf.printf "Parse error: %s\n" msg);
-        []
-    | e ->
-        Printf.printf "Error parsing %s: %s\n" fname (Printexc.to_string e);
-        [])
-  else (
-    print_endline ("Feature File " ^ fname ^ " does not exist");
-    [])
+  let load_feature_file _dialect fname =
+    if Sys.file_exists fname then (
+      try
+        (* Parse the feature file using the configured parser *)
+        let feature = Parser.parse_file fname in
+        (* Convert to pickles *)
+        feature_to_pickles feature
+      with
+      | Parser.Parse_error (msg, pos) ->
+          (match pos with
+          | Some p ->
+              Printf.printf "Parse error at line %d, col %d: %s\n"
+                p.Gherkin_ast.line p.col msg
+          | None -> Printf.printf "Parse error: %s\n" msg);
+          []
+      | e ->
+          Printf.printf "Error parsing %s: %s\n" fname (Printexc.to_string e);
+          [])
+    else (
+      print_endline ("Feature File " ^ fname ^ " does not exist");
+      [])
 
 let tags_exists tags tag = List.exists (Tag.compare tag) tags
 let pickles_exists tags pickle = List.exists (tags_exists pickle.tags) tags
@@ -178,11 +184,15 @@ let filter_not_pickles disallowed pickles =
   in
   rev_filter allow_empty_tag_list pickles
 
-let filter_pickles tags pickles =
-  match tags with
-  | [], [] -> pickles
-  | allowed, [] -> rev_filter (pickles_exists allowed) pickles
-  | [], disallowed -> filter_not_pickles disallowed pickles
-  | allowed, disallowed ->
-      let filtered_pickles = rev_filter (pickles_exists allowed) pickles in
-      rev_filter (fun p -> not (pickles_exists disallowed p)) filtered_pickles
+  let filter_pickles tags pickles =
+    match tags with
+    | [], [] -> pickles
+    | allowed, [] -> rev_filter (pickles_exists allowed) pickles
+    | [], disallowed -> filter_not_pickles disallowed pickles
+    | allowed, disallowed ->
+        let filtered_pickles = rev_filter (pickles_exists allowed) pickles in
+        rev_filter (fun p -> not (pickles_exists disallowed p)) filtered_pickles
+end
+
+(* Default instantiation with pure OCaml parser for backward compatibility *)
+include Make (Gherkin_parser_pure)

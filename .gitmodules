@@ -1,0 +1,3 @@
+[submodule "lib/gherkin"]
+	path = lib/gherkin
+	url = https://github.com/cucumber/gherkin.git

@@ -143,24 +143,3 @@ val compile_pattern : string -> Re.re
 (** Compile a pattern string into a regex.
 
     Raises Invalid_argument if the pattern is not valid Perl-style regex. *)
-
-(** {1 Advanced} *)
-
-(** Extract information from a registered step for debugging/reporting *)
-val step_info : registered_step -> step_type * string * step_location option
-(** Get the step type, pattern, and location from a registered step.
-
-    Example:
-    {[
-      let steps = get_all_steps () in
-      List.iter
-        (fun step ->
-          let stype, pattern, loc = step_info step in
-          Printf.printf "%s: %s\n"
-            (match stype with
-            | `Given -> "Given"
-            | `When -> "When"
-            | `Then -> "Then")
-            pattern)
-        steps
-    ]} *)
