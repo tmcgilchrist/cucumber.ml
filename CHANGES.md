@@ -1,5 +1,12 @@
 ### unreleased
 
+* **Parser Abstraction Layer**: Introduced pluggable parser architecture using module functors.
+  - Pure OCaml parser is now the default (no C dependencies required)
+  - Module functor `Cucumber.Make(Parser)` allows custom parser implementations
+  - Parser interface defined in `Gherkin_parser_intf.PARSER`
+  - Backward compatible: existing code works without changes
+  - All modules (Lib, Pickle) functorized to support parser selection
+
 ### v1.0.4
 
 * before updating we need to init the submodule (#37).
