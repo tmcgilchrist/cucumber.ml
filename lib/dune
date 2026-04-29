@@ -32,25 +32,3 @@
  (modules parser))
 
 (data_only_dirs gherkin)
-
-; C-based parser library using Ctypes
-(rule
- (targets libgherkin.a dllgherkin.so)
- (deps
-  (source_tree gherkin))
- (action
-  (no-infer (progn
-   (chdir %{project_root}/lib/gherkin/c (run make libs libs_so))
-   (copy %{project_root}/lib/gherkin/c/libs/libgherkin.a libgherkin.a)
-   (copy %{project_root}/lib/gherkin/c/libs/libgherkin.so.36.0.0 dllgherkin.so)))))
-
-(library
- (name cucumber_c)
- (public_name cucumber-c)
- (optional)
- (libraries cucumber ctypes ctypes.foreign str)
- (flags
-  (:standard -w -42-32))
- (foreign_archives gherkin)
- (c_library_flags (-L. -lgherkin -lstdc++))
- (modules gherkin_c_bindings gherkin_c_converter gherkin_parser_c cucumber_c))
