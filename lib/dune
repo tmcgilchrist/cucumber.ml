@@ -12,7 +12,6 @@
   gherkin_keywords
   gherkin_parser_intf
   gherkin_parser_pure
-  gherkin_parser
   lex
   parser
   pickle
