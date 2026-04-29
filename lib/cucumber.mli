@@ -12,9 +12,8 @@
 
     {1 Parser Selection}
 
-    By default, Cucumber.ml uses a pure OCaml parser (no C dependencies). You can:
-    - Use the default: [open Cucumber] (pure OCaml parser)
-    - Use the C parser: [module Cucumber = Cucumber.Make(Cucumber_c.Parser)]
+    Cucumber.ml ships a pure OCaml Gherkin parser (no C dependencies). You can:
+    - Use the default: [open Cucumber]
     - Use a custom parser via functor: [module MyCucumber = Cucumber.Make(My_parser)]
 
     @see <https://github.com/cucumber/cucumber.ml> for documentation and examples. *)

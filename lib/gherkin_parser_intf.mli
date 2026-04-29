@@ -1,18 +1,14 @@
 (** Parser interface for Gherkin feature files.
 
     This module defines the signature that all Gherkin parser implementations
-    must satisfy. It provides an abstraction layer allowing users to choose
-    between different parser backends (pure OCaml, C-based, custom implementations).
+    must satisfy. The shipped implementation is {!Gherkin_parser_pure}; the
+    interface lets third parties plug in their own.
 
     The interface is designed to be:
     - Simple: Just three core operations
     - Consistent: All parsers produce the same AST type
     - Extensible: Third parties can implement custom parsers
     - Type-safe: Module system enforces correctness
-
-    Example implementations:
-    - {!Gherkin_parser_pure}: Pure OCaml parser using Menhir and sedlex (default)
-    - {!Gherkin_parser_c}: C-based parser using gherkin library
 
     To use a custom parser with Cucumber:
     {[
