@@ -10,6 +10,7 @@
   effects
   gherkin_ast
   gherkin_keywords
+  gherkin_keywords_data
   gherkin_parser_intf
   gherkin_parser_pure
   lex
@@ -30,3 +31,12 @@
 
 (menhir
  (modules parser))
+
+(rule
+ (target gherkin_keywords_data.ml)
+ (deps
+  (:gen ../bin/gen_keywords/gen.exe)
+  (:json %{project_root}/vendor/gherkin-languages.json))
+ (action
+  (with-stdout-to %{target}
+   (run %{gen} %{json}))))

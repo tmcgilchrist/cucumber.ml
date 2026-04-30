@@ -19,6 +19,7 @@
   (menhir (>= 20180523))
   (sedlex (>= 2.0))
   (ppxlib (>= 0.32.0))
+  (yojson (and :build (>= 2.0)))
   (alcotest :with-test)))
 
 (package

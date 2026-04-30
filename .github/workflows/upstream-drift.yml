@@ -1,0 +1,32 @@
+name: Upstream gherkin drift
+
+# Periodic check that vendor/gherkin-languages.json and
+# test/gherkin-testdata/ are still in sync with cucumber/gherkin upstream.
+# Failing means upstream has moved on; refresh the snapshot and bump
+# vendor/UPSTREAM.
+
+on:
+  schedule:
+    - cron: "0 4 1 * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch upstream snapshot
+        run: |
+          set -eux
+          mkdir -p /tmp/upstream
+          curl -fsSL https://github.com/cucumber/gherkin/archive/refs/heads/main.tar.gz \
+            | tar -xz --strip-components=1 -C /tmp/upstream \
+                gherkin-main/gherkin-languages.json \
+                gherkin-main/testdata
+
+      - name: Diff gherkin-languages.json
+        run: diff -u vendor/gherkin-languages.json /tmp/upstream/gherkin-languages.json
+
+      - name: Diff testdata
+        run: diff -rq test/gherkin-testdata /tmp/upstream/testdata
