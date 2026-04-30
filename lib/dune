@@ -30,5 +30,3 @@
 
 (menhir
  (modules parser))
-
-(data_only_dirs gherkin)
