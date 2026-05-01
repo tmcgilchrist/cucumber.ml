@@ -1,0 +1,6 @@
+repo: https://github.com/cucumber/gherkin
+commit: 93e43eef358ff6b8f1708d88feb1736b9123c765
+tag: go/v36.0.0-17-g93e43eef
+files:
+  vendor/gherkin-languages.json     <- gherkin-languages.json
+  test/gherkin-testdata/            <- testdata/

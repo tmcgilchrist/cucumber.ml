@@ -1,0 +1,3 @@
+(executable
+ (name lex_debug)
+ (libraries cucumber sedlex menhirLib))

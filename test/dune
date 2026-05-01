@@ -1,8 +1,44 @@
-(executables
- (libraries cucumber)
+(executable
+ (name camels)
  (package cucumber)
- (public_names cucumber)
- (modules test)
+ (libraries cucumber)
+ (public_name camels)
  (flags
-  (:standard -w -27))
- (names test))
+  (:standard -w -27)))
+
+; TODO Move this to examples?
+(executable
+ (name camels_ppx)
+ (package cucumber)
+ (libraries cucumber)
+ (public_name camels_ppx)
+ (preprocess
+  (pps ppx_cucumber))
+ (flags
+  (:standard -w -27)))
+
+(test
+ (name test_suite)
+ (package cucumber)
+ (libraries cucumber alcotest)
+ (flags
+  (:standard -w -42))
+ (deps
+  (source_tree features)))
+
+; Conformance suite against vendored cucumber/gherkin testdata.
+; Detached from @runtest because it currently has known failures
+; (parser permissiveness gaps + position bug in lex.ml). Run with:
+;   dune build @conformance
+(executable
+ (name conformance)
+ (libraries cucumber alcotest yojson)
+ (flags
+  (:standard -w -42)))
+
+(rule
+ (alias conformance)
+ (deps
+  (source_tree gherkin-testdata))
+ (action
+  (run %{exe:conformance.exe})))

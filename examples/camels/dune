@@ -1,0 +1,42 @@
+(executable
+ (name classic)
+ (libraries cucumber)
+ (modules classic)
+ (flags
+  (:standard -w -27)))
+
+(executable
+ (name ppx_attributes)
+ (libraries cucumber)
+ (modules ppx_attributes)
+ (preprocess
+  (pps ppx_cucumber))
+ (flags
+  (:standard -w -27)))
+
+(executable
+ (name ppx_effects)
+ (libraries cucumber)
+ (modules ppx_effects)
+ (preprocess
+  (pps ppx_cucumber))
+ (flags
+  (:standard -w -27)))
+
+(rule
+ (alias runtest)
+ (deps camels.feature)
+ (action
+  (run ./classic.exe camels.feature)))
+
+(rule
+ (alias runtest)
+ (deps camels.feature)
+ (action
+  (run ./ppx_attributes.exe camels.feature)))
+
+(rule
+ (alias runtest)
+ (deps camels.feature)
+ (action
+  (run ./ppx_effects.exe camels.feature)))

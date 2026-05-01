@@ -1,0 +1,62 @@
+(** Camel farm example using the classic builder-based API.
+
+    This demonstrates the traditional approach to defining Cucumber steps:
+    - Manual regex compilation
+    - Explicit state threading through function parameters
+    - Builder pipeline (_Given |> _When |> _Then)
+    - Verbose Option handling *)
+
+open Cucumber
+
+type farm = { camels : int }
+
+let steps =
+  empty
+  |> set_dialect Cucumber.Dialect.En
+  |> _Given (Re.Perl.compile_pat "I have (\\d+) camel on my farm")
+       (fun state group args ->
+         let no_camels =
+           Option.bind group (fun g -> Re.Group.get_opt g 1)
+           |> Option.map (fun f -> int_of_string_opt f)
+           |> Option.join
+         in
+         match no_camels with
+         | Some no_camels -> pass_with_state { camels = no_camels }
+         | None -> fail)
+  |> _When (Re.Perl.compile_pat "I buy (\\d+) more camels")
+       (fun state group args ->
+         let more_camels =
+           Option.bind group (fun g -> Re.Group.get_opt g 1)
+           |> Option.map (fun f -> int_of_string_opt f)
+           |> Option.join |> Option.value ~default:0
+         in
+         let state =
+           match state with None -> failwith "No state" | Some state -> state
+         in
+         pass_with_state { camels = state.camels + more_camels })
+  |> _When (Re.Perl.compile_pat "I sell (\\d+) camels") (fun state group args ->
+         let sold_camels =
+           Option.bind group (fun g -> Re.Group.get_opt g 1)
+           |> Option.map (fun f -> int_of_string_opt f)
+           |> Option.join |> Option.value ~default:0
+         in
+         let state =
+           match state with None -> failwith "No state" | Some state -> state
+         in
+         let new_count = state.camels - sold_camels in
+         if new_count < 0 then (Some state, Cucumber.Outcome.Fail)
+         else pass_with_state { camels = new_count })
+  |> _Then (Re.Perl.compile_pat "I have (\\d+) camels on my farm")
+       (fun state group args ->
+         let camels =
+           Option.bind group (fun g -> Re.Group.get_opt g 1)
+           |> Option.map (fun f -> int_of_string_opt f)
+           |> Option.join |> Option.value ~default:0
+         in
+         let state =
+           match state with None -> failwith "No state" | Some state -> state
+         in
+         if state.camels == camels then (Some state, Cucumber.Outcome.Pass)
+         else (Some state, Cucumber.Outcome.Fail))
+
+let () = execute steps

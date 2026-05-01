@@ -62,15 +62,15 @@ Next create a `cucumber.ml` file in that same directory.
 
 {[
 (* Bring the Gherkin DSL into scope *)
-open Cucumber.Lib
+open Cucumber
 
 (* Create an minimal set of Steps *)
-let steps = 
+let steps =
   empty
   |> set_dialect Cucumber.Dialect.En
 
 (* Execute the steps *)
-let () = 
+let () =
   execute steps
 ]}
 
@@ -145,7 +145,7 @@ example is available in {{:https://github.com/cucumber/cucumber.ml/example}} and
 
 {1:full Cucumber API}
 
-{!modules: Cucumber.Lib Cucumber.Pickle}
+{!modules: Cucumber Cucumber.Pickle}
 
 {1:resources Resources}
 
